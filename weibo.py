@@ -14,7 +14,7 @@ import docx
 
 
 class Weibo:
-    cookie = {"Cookie": "YF-Page-G0=23b9d9eac864b0d725a27007679967df; SUB=_2A2528u8KDeRhGeRM7FMY9CnKwjmIHXVSHPFCrDV6PUJbktAKLU3QkW1NU8TeH4IylJAoOryFVXFWCw7jIRfcnJqw; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhONo4vPAN79DCPo6jcXFkG5JpX5K-hUgL.FozES024ShMc1K-2dJLoI79hdNS_dXQt"}  # 将your cookie替换成自己的cookie
+    cookie = {"Cookie": "YF-Page-G0=; SUB=; SUBP="}  # 将your cookie替换成自己的cookie
 
     # Weibo类初始化
     def __init__(self, user_id, filter=0):
