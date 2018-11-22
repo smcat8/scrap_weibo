@@ -9,10 +9,12 @@ import traceback
 from datetime import datetime
 from datetime import timedelta
 from lxml import etree
+from MyHandle import MyHTMLParser, MyHandle
+import docx
 
 
 class Weibo:
-    cookie = {"Cookie": "YF-Page-G0=; SUB=; SUBP="}  # 将your cookie替换成自己的cookie
+    cookie = {"Cookie": "YF-Page-G0=23b9d9eac864b0d725a27007679967df; SUB=_2A2528u8KDeRhGeRM7FMY9CnKwjmIHXVSHPFCrDV6PUJbktAKLU3QkW1NU8TeH4IylJAoOryFVXFWCw7jIRfcnJqw; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WhONo4vPAN79DCPo6jcXFkG5JpX5K-hUgL.FozES024ShMc1K-2dJLoI79hdNS_dXQt"}  # 将your cookie替换成自己的cookie
 
     # Weibo类初始化
     def __init__(self, user_id, filter=0):
@@ -24,12 +26,20 @@ class Weibo:
         self.following = 0  # 用户关注数
         self.followers = 0  # 用户粉丝数
         self.weibo_content = []  # 微博内容
+        self.weibo_pic_link = []  # 原图
+        self.weibo_link = []  # 转连接
         self.weibo_place = []  # 微博位置
         self.publish_time = []  # 微博发布时间
         self.up_num = []  # 微博对应的点赞数
         self.retweet_num = []  # 微博对应的转发数
         self.comment_num = []  # 微博对应的评论数
         self.publish_tool = []  # 微博发布工具
+
+    def setDoc(self, doc):
+        self.doc = doc
+    
+    def setHandle(self, handle):
+        self.handle = handle
 
     # 获取用户昵称
     def get_username(self):
@@ -126,6 +136,7 @@ class Weibo:
                         weibo_id = info[i].xpath("@id")[0][2:]
                         #html.unescape(urllib.parse.unquote('https://weibo.cn/sinaurl?f=w&amp;u=http%3A%2F%2Ft.cn%2FReBoAd9&amp;ep=GsPnbnhNK%2C2419394015%2CGsPnbnhNK%2C2419394015'))
                         #urllib.parse.parse_qs('https://weibo.cn/sinaurl?f=w&amp;u=http%3A%2F%2Ft.cn%2FReBoAd9&amp;ep=GsPnbnhNK%2C2419394015%2CGsPnbnhNK%2C2419394015')['u']
+                        wb_link = []
                         a_link = info[i].xpath(
                             "div/span[@class='ctt']/a/@href")
                         if a_link:
@@ -136,16 +147,22 @@ class Weibo:
                                 if wb_content:
                                     weibo_content = wb_content
                             if 'u' in urllib.parse.parse_qs(a_link[-1]).keys():
-                                weibo_content += urllib.parse.parse_qs(a_link[-1])['u'][0]
+                                wb_link.append(urllib.parse.parse_qs(a_link[-1])['u'][0])
+                        if len(wb_link):
+                            weibo_content += ' '.join(wb_link)
                         self.weibo_content.append(weibo_content)
+                        self.weibo_link.append(' '.join(wb_link))
                         print(u"微博内容: " + weibo_content)
 
                         # 原图
+                        wb_pic_link = []
                         p_link = info[i].xpath("div/a")
                         if p_link:
                             for p in p_link:
                                 if p.xpath("text()") and u"原图" in p.xpath("text()")[0]:
-                                    print(u"原图: " + p.xpath("@href")[0])
+                                    wb_pic_link.append(p.xpath("@href")[0])
+                            print(u"原图: " + ' '.join(wb_pic_link))
+                        self.weibo_pic_link.append(' '.join(wb_pic_link))
 
                         # 微博位置
                         div_first = info[i].xpath("div")[0]
@@ -257,8 +274,8 @@ class Weibo:
                         u"微博位置: " + self.weibo_place[i] + "\n" +
                         u"发布时间: " + self.publish_time[i] + "\n" +
                         u"点赞数: " + str(self.up_num[i]) +
-                        u"	 转发数: " + str(self.retweet_num[i]) +
-                        u"	 评论数: " + str(self.comment_num[i]) + "\n"
+                        u"   转发数: " + str(self.retweet_num[i]) +
+                        u"   评论数: " + str(self.comment_num[i]) + "\n"
                         u"发布工具: " + self.publish_tool[i] + "\n\n"
                         )
                 result = result + text
@@ -276,6 +293,43 @@ class Weibo:
             print("Error: ", e)
             traceback.print_exc()
 
+    # 将爬取的信息写入文件
+    def write_doc(self):
+        try:
+            if self.filter:
+                result_header = u"\n\n原创微博内容: \n"
+            else:
+                result_header = u"\n\n微博内容: \n"
+            result = (u"用户信息\n用户昵称：" + self.username +
+                      u"\n用户id: " + str(self.user_id) +
+                      u"\n微博数: " + str(self.weibo_num) +
+                      result_header
+                      )
+            if self.doc:
+                self.doc.add_heading(result)
+            for i in range(self.weibo_num2):
+                if self.doc:
+                    self.doc.add_paragraph(str(self.weibo_num2 - i) + ":" + u"发布时间: " + self.publish_time[i])
+                    self.doc.add_paragraph(self.weibo_content[i])
+                    if "" != self.weibo_pic_link[i]:
+                        for j in self.weibo_pic_link[i].split(' '):
+                            response = requests.get(j, cookies=self.cookie)
+                            print(response.url)
+                            urllib.request.urlretrieve(response.url, '1.jpg')
+                            self.doc.add_picture('1.jpg')
+                    if "" != self.weibo_link[i]:
+                        if self.publish_tool[i].find('weibo.com') > 0:
+                            for j in self.weibo_link[i].split(' '):
+                                response = requests.get(j)
+                                print(self.publish_tool[i], response.url)
+                                self.handle.handleURL(response.url)
+            
+            docName = str(self.user_id) + ".docx"
+            self.doc.save(docName)      
+
+        except Exception as e:
+            print("Error: ", e)
+            traceback.print_exc()
     # 运行爬虫
     def start(self):
         try:
@@ -283,6 +337,7 @@ class Weibo:
             self.get_user_info()
             self.get_weibo_info()
             self.write_txt()
+            self.write_doc()
             print(u"信息抓取完毕")
             print("===========================================================================")
         except Exception as e:
@@ -291,10 +346,17 @@ class Weibo:
 
 def main():
     try:
+        doc = docx.Document()
+        parser = MyHTMLParser(doc)
+        myhandle = MyHandle()
+        myhandle.setParser(parser)
+
         # 使用实例,输入一个用户id，所有信息都会存储在wb实例中
         user_id = 2419394015  # 可以改成任意合法的用户id（爬虫的微博id除外）
         filter = 1  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
         wb = Weibo(user_id, filter)  # 调用Weibo类，创建微博实例wb
+        wb.setDoc(doc)
+        wb.setHandle(myhandle)
         wb.start()  # 爬取微博信息
         print(u"用户名: " + wb.username)
         print(u"全部微博数: " + str(wb.weibo_num))
