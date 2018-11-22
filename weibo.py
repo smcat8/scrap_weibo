@@ -140,6 +140,13 @@ class Weibo:
                         self.weibo_content.append(weibo_content)
                         print(u"微博内容: " + weibo_content)
 
+                        # 原图
+                        p_link = info[i].xpath("div/a")
+                        if p_link:
+                            for p in p_link:
+                                if p.xpath("text()") and u"原图" in p.xpath("text()")[0]:
+                                    print(u"原图: " + p.xpath("@href")[0])
+
                         # 微博位置
                         div_first = info[i].xpath("div")[0]
                         a_list = div_first.xpath("a")
@@ -245,14 +252,14 @@ class Weibo:
                       u"\n粉丝数: " + str(self.followers) +
                       result_header
                       )
-            for i in range(1, self.weibo_num2 + 1):
-                text = (str(i) + ":" + self.weibo_content[i - 1] + "\n" +
-                        u"微博位置: " + self.weibo_place[i - 1] + "\n" +
-                        u"发布时间: " + self.publish_time[i - 1] + "\n" +
-                        u"点赞数: " + str(self.up_num[i - 1]) +
-                        u"	 转发数: " + str(self.retweet_num[i - 1]) +
-                        u"	 评论数: " + str(self.comment_num[i - 1]) + "\n"
-                        u"发布工具: " + self.publish_tool[i - 1] + "\n\n"
+            for i in range(self.weibo_num2):
+                text = (str(self.weibo_num2 - i) + ":" + self.weibo_content[i] + "\n" +
+                        u"微博位置: " + self.weibo_place[i] + "\n" +
+                        u"发布时间: " + self.publish_time[i] + "\n" +
+                        u"点赞数: " + str(self.up_num[i]) +
+                        u"	 转发数: " + str(self.retweet_num[i]) +
+                        u"	 评论数: " + str(self.comment_num[i]) + "\n"
+                        u"发布工具: " + self.publish_tool[i] + "\n\n"
                         )
                 result = result + text
             file_dir = os.path.split(os.path.realpath(__file__))[
