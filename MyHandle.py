@@ -80,6 +80,12 @@ class MyHTMLParser(HTMLParser):
         print("-----------Save into doc")
 
 class MyHandle:
+    
+    def __init__(self):
+        self.browser = Browser("chrome")
+    
+    def __del__(self):
+        self.browser.quit()
         
     def setParam(self, m_title, m_para, m_html):
         self.m_title = m_title
@@ -95,16 +101,17 @@ class MyHandle:
     def handleURL(self, url):
         media_weibo_cn = [['h2'],['div[class="name m-text-cut"]','div[class="time"]', 'div[class="name m-text-cut"]'],['div[class="f-art"]']]
         keywords = {'div[class="m-feed"]':  media_weibo_cn}
-        with Browser("chrome") as browser:
-		        browser.visit(url)
-		        time.sleep(5)
-	
-		        for key,value in keywords.items():
-		            content = browser.find_by_css(key)
-		            if content:
-		                self.setContent(content[0])
-		                self.setParam(value[0],value[1],value[2])
-		                self.handle()
+        self.browser.visit(url)
+        time.sleep(5)
+
+        for key,value in keywords.items():
+            content = self.browser.find_by_css(key)
+            if content:
+                self.setContent(content[0])
+                self.setParam(value[0],value[1],value[2])
+                self.handle()
+            else:
+                print("Can't find content!")
     
     def handle(self):
         if self.content and isinstance(self.content,splinter.driver.webdriver.WebDriverElement):
@@ -137,4 +144,4 @@ if __name__ == "__main__":
     myhandle = MyHandle()
     myhandle.setParser(parser)
     myhandle.handleURL(url)
-    
+    doc.save('Myhandle.docx')
