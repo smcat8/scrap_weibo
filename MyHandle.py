@@ -6,6 +6,7 @@ from splinter.browser import Browser
 import time
 import splinter
 
+
 import os
 import re
 import requests, urllib
@@ -15,13 +16,12 @@ from datetime import datetime
 from datetime import timedelta
 from lxml import etree
 import docx
+from docx.shared import Inches
 
 #url = "https://passport.weibo.com/visitor/visitor?entry=miniblog&a=enter&url=https://weibo.com/ttarticle/p/show?id=2309404303470613106478&domain=.weibo.com&ua=php-sso_sdk_client-0.6.28&_rand=1541730661.0264"
 #url = "http://t.cn/RYtILyJ"
 
 #doc = docx.Document()
-
-
 
 class MyHTMLParser(HTMLParser):
     def __init__(self, doc):
@@ -38,8 +38,12 @@ class MyHTMLParser(HTMLParser):
                if 'src' == attr[0]:
                    print(attr[1])
                    #将图片添加到Word文档中
-                   urllib.request.urlretrieve(attr[1], '0.jpg')
-                   self.doc.add_picture('0.jpg')
+                   pic = '0.jpg'
+                   urllib.request.urlretrieve(attr[1], pic)
+                   if (os.path.getsize(pic) > 40*1000):
+                       self.doc.add_picture(pic, width=Inches(5))
+                   else:
+                       self.doc.add_picture(pic)
                    print("-----------Save img")
 
     #匹配结束标签
@@ -99,8 +103,9 @@ class MyHandle:
         self.parser = parser
     
     def handleURL(self, url):
-        media_weibo_cn = [['h2'],['div[class="name m-text-cut"]','div[class="time"]', 'div[class="name m-text-cut"]'],['div[class="f-art"]']]
-        keywords = {'div[class="m-feed"]':  media_weibo_cn}
+        media_weibo_cn = [['h2'],['div[class="name m-text-cut"]','div[class="time"]'],['div[class="f-art"]']]
+        weibo_com = [['div[class="title"]'],['em[class="W_autocut"]','span[class="time"]'],['div[class="WB_editor_iframe"]']]
+        keywords = {'div[class="m-feed"]': media_weibo_cn, 'div[class="main_editor "]' : weibo_com}
         self.browser.visit(url)
         time.sleep(5)
 
@@ -111,7 +116,7 @@ class MyHandle:
                 self.setParam(value[0],value[1],value[2])
                 self.handle()
             else:
-                print("Can't find content!")
+                print("Can't find content!", key)
     
     def handle(self):
         if self.content and isinstance(self.content,splinter.driver.webdriver.WebDriverElement):
@@ -139,7 +144,8 @@ if __name__ == "__main__":
     doc = docx.Document()
     parser = MyHTMLParser(doc)
 
-    url = "https://media.weibo.cn/article?object_id=1022%3A2309404263284382559889&extparam=lmid--4263284376469708&luicode=10000011&lfid=1076032419394015&id=2309404263284382559889"
+    #url = "https://media.weibo.cn/article?object_id=1022%3A2309404263284382559889&extparam=lmid--4263284376469708&luicode=10000011&lfid=1076032419394015&id=2309404263284382559889"
+    url = "https://weibo.com/ttarticle/p/show?id=2309404236467995053123"
 
     myhandle = MyHandle()
     myhandle.setParser(parser)
