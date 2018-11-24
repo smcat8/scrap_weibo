@@ -11,6 +11,7 @@ from datetime import timedelta
 from lxml import etree
 from MyHandle import MyHTMLParser, MyHandle
 import docx
+from docx.shared import Inches
 
 
 class Weibo:
@@ -119,6 +120,7 @@ class Weibo:
                     "//input[@name='mp']")[0].attrib["value"])
             pattern = r"\d+\.?\d*"
             for page in range(1, page_num + 1):
+                #if page > 5 : break
                 url2 = "https://weibo.cn/u/%d?filter=%d&page=%d" % (
                     self.user_id, self.filter, page)
                 html2 = requests.get(url2, cookies=self.cookie).content
@@ -315,15 +317,19 @@ class Weibo:
                         for j in self.weibo_pic_link[i].split(' '):
                             response = requests.get(j, cookies=self.cookie)
                             print(response.url)
-                            urllib.request.urlretrieve(response.url, '1.jpg')
-                            self.doc.add_picture('1.jpg')
+                            pic = '1.jpg'
+                            urllib.request.urlretrieve(response.url, pic)
+                            if (os.path.getsize(pic) > 40*1000):
+                                self.doc.add_picture(pic, width=Inches(5))
+                            else:
+                                self.doc.add_picture(pic)
                     if "" != self.weibo_link[i]:
                         if self.publish_tool[i].find('weibo.com') > 0:
                             for j in self.weibo_link[i].split(' '):
-                                response = requests.get(j)
+                                response = requests.get(j, cookies=self.cookie)
                                 print(self.publish_tool[i], response.url)
                                 self.handle.handleURL(response.url)
-            
+
             docName = str(self.user_id) + ".docx"
             self.doc.save(docName)      
 
@@ -336,7 +342,7 @@ class Weibo:
             self.get_username()
             self.get_user_info()
             self.get_weibo_info()
-            self.write_txt()
+            #self.write_txt()
             self.write_doc()
             print(u"信息抓取完毕")
             print("===========================================================================")
