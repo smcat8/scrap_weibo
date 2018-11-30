@@ -106,8 +106,28 @@ class MyHandle:
         media_weibo_cn = [['h2'],['div[class="name m-text-cut"]','div[class="time"]'],['div[class="f-art"]']]
         weibo_com = [['div[class="title"]'],['em[class="W_autocut"]','span[class="time"]'],['div[class="WB_editor_iframe"]']]
         keywords = {'div[class="m-feed"]': media_weibo_cn, 'div[class="main_editor "]' : weibo_com}
+        unvalid=['div[class="B_unlog"]', 'div[class="WB_miniblog"]','div[class="tit"]','div[class="doc"]']
         self.browser.visit(url)
-        time.sleep(5)
+        time.sleep(1)
+        
+        now = datetime.now()
+        while 'find_flag' not in vars():
+            for key,value in keywords.items():
+                content = self.browser.find_by_css(key)
+                if content:
+                    find_flag = True
+            
+            for v in unvalid:
+                if self.browser.find_by_css(v):
+                    print("Missing a page")
+                    find_flag = True
+            
+            if (datetime.now() - now).seconds > 60:
+                print("Timeout a page")
+                find_flag = True
+            else:
+                time.sleep(1)
+                print("Sleep a while")
 
         for key,value in keywords.items():
             content = self.browser.find_by_css(key)
