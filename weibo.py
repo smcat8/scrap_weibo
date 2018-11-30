@@ -298,6 +298,7 @@ class Weibo:
     # 将爬取的信息写入文件
     def write_doc(self):
         try:
+            requests.adapters.DEFAULT_RETRIES = 5
             if self.filter:
                 result_header = u"\n\n原创微博内容: \n"
             else:
@@ -358,7 +359,7 @@ def main():
         myhandle.setParser(parser)
 
         # 使用实例,输入一个用户id，所有信息都会存储在wb实例中
-        user_id = 2419394015  # 可以改成任意合法的用户id（爬虫的微博id除外）
+        user_id = 5924883248  # 可以改成任意合法的用户id（爬虫的微博id除外）
         filter = 1  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
         wb = Weibo(user_id, filter)  # 调用Weibo类，创建微博实例wb
         wb.setDoc(doc)
