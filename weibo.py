@@ -15,7 +15,7 @@ from docx.shared import Inches
 
 
 class Weibo:
-    cookie = {"Cookie": "YF-Page-G0=; SUB=; SUBP="}  # 将your cookie替换成自己的cookie
+    cookie = {"Cookie": "YF-Page-G0=; SUB=-; SUBP=."}  # 将your cookie替换成自己的cookie
 
     # Weibo类初始化
     def __init__(self, user_id, filter=0):
@@ -35,12 +35,20 @@ class Weibo:
         self.retweet_num = []  # 微博对应的转发数
         self.comment_num = []  # 微博对应的评论数
         self.publish_tool = []  # 微博发布工具
+        self.start_time = None
+        self.end_time = None
 
     def setDoc(self, doc):
         self.doc = doc
     
     def setHandle(self, handle):
         self.handle = handle
+
+    def setStartTime(self, start_time):
+        self.start_time = start_time
+
+    def setEndTime(self, end_time):
+        self.end_time = end_time
 
     # 获取用户昵称
     def get_username(self):
@@ -310,7 +318,14 @@ class Weibo:
                       )
             if self.doc:
                 self.doc.add_heading(result)
-            for i in range(self.weibo_num2):
+            for i in range(self.weibo_num2-1,-1,-1):
+                print(i)
+                if self.start_time is not None:
+                    if (self.start_time - datetime.strptime(self.publish_time[i].split()[0], "%Y-%m-%d")).days > 0:
+                        continue
+                if self.end_time is not None:
+                    if (datetime.strptime(self.publish_time[i].split()[0], "%Y-%m-%d") - self.end_time).days > 0:
+                        continue
                 if self.doc:
                     self.doc.add_paragraph(str(self.weibo_num2 - i) + ":" + u"发布时间: " + self.publish_time[i])
                     self.doc.add_paragraph(self.weibo_content[i])
@@ -331,7 +346,12 @@ class Weibo:
                                 print(self.publish_tool[i], response.url)
                                 self.handle.handleURL(response.url)
 
-            docName = str(self.user_id) + ".docx"
+            docName = str(self.user_id)
+            if self.start_time is not None:
+                docName += "." + self.start_time.strftime("%Y-%m-%d")
+            if self.end_time is not None:
+                docName += "." + self.end_time.strftime("%Y-%m-%d")
+            docName += ".docx" 
             self.doc.save(docName)      
 
         except Exception as e:
@@ -352,6 +372,13 @@ class Weibo:
 
 
 def main():
+    if len(sys.argv) == 2:
+        start_time = datetime.strptime(sys.argv[1], "%Y-%m-%d")
+    elif len(sys.argv) == 3:
+        start_time = datetime.strptime(sys.argv[1], "%Y-%m-%d")
+        end_time = datetime.strptime(sys.argv[2], "%Y-%m-%d")
+        if (start_time - end_time).days > 0:
+            start_time, end_time = end_time, start_time
     try:
         doc = docx.Document()
         parser = MyHTMLParser(doc)
@@ -364,6 +391,10 @@ def main():
         wb = Weibo(user_id, filter)  # 调用Weibo类，创建微博实例wb
         wb.setDoc(doc)
         wb.setHandle(myhandle)
+        if 'start_time' in vars():
+            wb.setStartTime(start_time)
+        if 'end_time' in vars():
+            wb.setEndTime(end_time)
         wb.start()  # 爬取微博信息
         print(u"用户名: " + wb.username)
         print(u"全部微博数: " + str(wb.weibo_num))
