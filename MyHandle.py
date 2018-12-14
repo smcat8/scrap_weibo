@@ -87,6 +87,8 @@ class MyHandle:
     
     def __init__(self):
         self.browser = Browser("chrome")
+        self.browser.visit("https://weibo.com/")
+        time.sleep(10)
     
     def __del__(self):
         self.browser.quit()
