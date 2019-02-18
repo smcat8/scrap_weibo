@@ -11,11 +11,13 @@ from datetime import timedelta
 from lxml import etree
 from MyHandle import MyHTMLParser, MyHandle
 import docx
+from docx.oxml.ns import qn
 from docx.shared import Inches
+import socket
 
 
 class Weibo:
-    cookie = {"Cookie": "YF-Page-G0=; SUB=-; SUBP=."}  # 将your cookie替换成自己的cookie
+    cookie = {"Cookie": "YF-Page-G0=; SUB=; SUBP="}  # 将your cookie替换成自己的cookie
 
     # Weibo类初始化
     def __init__(self, user_id, filter=0):
@@ -29,6 +31,7 @@ class Weibo:
         self.weibo_content = []  # 微博内容
         self.weibo_pic_link = []  # 原图
         self.weibo_link = []  # 转连接
+        self.fake_link = [] # 无效连接
         self.weibo_place = []  # 微博位置
         self.publish_time = []  # 微博发布时间
         self.up_num = []  # 微博对应的点赞数
@@ -303,6 +306,23 @@ class Weibo:
             print("Error: ", e)
             traceback.print_exc()
 
+    def auto_down(self, url, filename):
+        try:
+            urllib.request.urlretrieve(url,filename)
+        except (socket.timeout, urllib.error.HTTPError) as e:
+            count = 1
+            while count <= 15:
+                try:
+                    urllib.request.urlretrieve(url, filename)
+                    break
+                except (socket.timeout, urllib.error.HTTPError) as e:
+                    err_info = 'Reloading for %d time' % count if count == 1 else 'Reloading for %d times' % count
+                    print(err_info)
+                    count += 1
+            if count > 15:
+                print("下载失败")
+
+
     # 将爬取的信息写入文件
     def write_doc(self):
         try:
@@ -331,22 +351,28 @@ class Weibo:
                     self.doc.add_paragraph(self.weibo_content[i])
                     if "" != self.weibo_pic_link[i]:
                         for j in self.weibo_pic_link[i].split(' '):
+                            print(j)
                             response = requests.get(j, cookies=self.cookie)
                             print(response.url)
                             pic = '1.jpg'
-                            urllib.request.urlretrieve(response.url, pic)
-                            if (os.path.getsize(pic) > 40*1000):
-                                self.doc.add_picture(pic, width=Inches(5))
-                            else:
-                                self.doc.add_picture(pic)
+                            self.auto_down(response.url, pic)
+                            try:
+                                if (os.path.getsize(pic) > 40*1000):
+                                    self.doc.add_picture(pic, width=Inches(5))
+                                else:
+                                    self.doc.add_picture(pic)
+                            except:
+                                print("Add picture fail:", response.url)
                     if "" != self.weibo_link[i]:
                         if self.publish_tool[i].find('weibo.com') > 0:
                             for j in self.weibo_link[i].split(' '):
                                 response = requests.get(j, cookies=self.cookie)
                                 print(self.publish_tool[i], response.url)
-                                self.handle.handleURL(response.url)
+                                rs = self.handle.handleURL(response.url)
+                                if not rs:
+                                    self.fake_link.append(response.url)
 
-            docName = str(self.user_id)
+            docName = self.username + ' ' + str(self.user_id)
             if self.start_time is not None:
                 docName += "." + self.start_time.strftime("%Y-%m-%d")
             if self.end_time is not None:
@@ -366,6 +392,7 @@ class Weibo:
             #self.write_txt()
             self.write_doc()
             print(u"信息抓取完毕")
+            print(u"无效连接", self.fake_link)
             print("===========================================================================")
         except Exception as e:
             print("Error: ", e)
@@ -381,12 +408,14 @@ def main():
             start_time, end_time = end_time, start_time
     try:
         doc = docx.Document()
+        doc.styles['Normal'].font.name = u'宋体'
+        doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), u'宋体')
         parser = MyHTMLParser(doc)
         myhandle = MyHandle()
         myhandle.setParser(parser)
 
         # 使用实例,输入一个用户id，所有信息都会存储在wb实例中
-        user_id = 5924883248  # 可以改成任意合法的用户id（爬虫的微博id除外）
+        user_id =  #  # 可以改成任意合法的用户id（爬虫的微博id除外）
         filter = 1  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
         wb = Weibo(user_id, filter)  # 调用Weibo类，创建微博实例wb
         wb.setDoc(doc)
