@@ -113,6 +113,7 @@ class MyHandle:
         time.sleep(1)
         
         now = datetime.now()
+        rs = True
         while 'find_flag' not in vars():
             for key,value in keywords.items():
                 content = self.browser.find_by_css(key)
@@ -123,10 +124,12 @@ class MyHandle:
                 if self.browser.find_by_css(v):
                     print("Missing a page")
                     find_flag = True
+                    rs = False
             
             if (datetime.now() - now).seconds > 60:
                 print("Timeout a page")
                 find_flag = True
+                rs = False
             else:
                 time.sleep(1)
                 print("Sleep a while")
@@ -139,6 +142,7 @@ class MyHandle:
                 self.handle()
             else:
                 print("Can't find content!", key)
+        return rs
     
     def handle(self):
         if self.content and isinstance(self.content,splinter.driver.webdriver.WebDriverElement):
